@@ -48,13 +48,14 @@ def check_response(response):
     return homeworks_list
 
 
+# c TypeError не проходят тесты
 def parse_status(homework):
     """Получаем статус домашней работы."""
     homework_name = homework.get('homework_name')
     homework_status = homework.get('status')
     if homework_status is None:
         logging.debug('Ошибка homework_status')
-        raise KeyError('Отсутствие в ответе новых статусов') # с TypeError не проходят тесты
+        raise KeyError('Отсутствие в ответе новых статусов')
     verdict = HOMEWORK_STATUSES.get(homework_status)
     if verdict is None:
         logging.error('Недокументированный статус домашней работы')
