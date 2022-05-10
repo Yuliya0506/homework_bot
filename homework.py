@@ -1,5 +1,3 @@
-import os
-
 import sys
 import time
 import logging
@@ -9,27 +7,10 @@ import requests
 import telegram
 from telegram.error import TelegramError
 
-from dotenv import load_dotenv
-
-from exceptions import (GetApiUnavailable, SendMessageFail)
-
-load_dotenv()
-
-PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
-TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
-TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
-
-
-RETRY_TIME = 600
-ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
-HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
-
-
-HOMEWORK_STATUSES = {
-    'approved': 'Работа проверена: ревьюеру всё понравилось. Ура!',
-    'reviewing': 'Работа взята на проверку ревьюером.',
-    'rejected': 'Работа проверена: у ревьюера есть замечания.'
-}
+from exceptions import GetApiUnavailable, SendMessageFail
+from config import (PRACTICUM_TOKEN, TELEGRAM_TOKEN,
+                    TELEGRAM_CHAT_ID, RETRY_TIME, ENDPOINT,
+                    HEADERS, HOMEWORK_STATUSES)
 
 
 def send_message(bot, message):
@@ -39,7 +20,7 @@ def send_message(bot, message):
         logging.info('Сообщение успешно отправлено')
     except TelegramError as error:
         logging.error('Cбой при отправке сообщения')
-        raise GetApiUnavailable(error)
+        raise SendMessageFail(error)
 
 
 def get_api_answer(current_timestamp):
@@ -49,7 +30,7 @@ def get_api_answer(current_timestamp):
     homework_statuses = requests.get(ENDPOINT, headers=HEADERS, params=params)
     if homework_statuses.status_code != HTTPStatus.OK:
         logging.error('Сбой при запросе к API')
-        raise SendMessageFail('Сбой при запросе к API')
+        raise GetApiUnavailable('Сбой при запросе к API')
     return homework_statuses.json()
 
 
@@ -73,7 +54,7 @@ def parse_status(homework):
     homework_status = homework.get('status')
     if homework_status is None:
         logging.debug('Ошибка homework_status')
-        raise KeyError('Отсутствие в ответе новых статусов')
+        raise KeyError('Отсутствие в ответе новых статусов') # с TypeError не проходят тесты
     verdict = HOMEWORK_STATUSES.get(homework_status)
     if verdict is None:
         logging.error('Недокументированный статус домашней работы')
@@ -104,12 +85,13 @@ def main():
             if homeworks:
                 message = parse_status(homeworks[0])
                 send_message(bot, message)
-            current_timestamp = response.get('current_date')
-            time.sleep(RETRY_TIME)
-
+            current_timestamp = response.get(current_timestamp)
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             logging.error(error)
+        except KeyboardInterrupt:
+            print('Программа была прервана пользователем')
+            break
         finally:
             time.sleep(RETRY_TIME)
 
