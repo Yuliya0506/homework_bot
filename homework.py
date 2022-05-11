@@ -49,8 +49,7 @@ def check_response(response):
     return homeworks_list
 
 
-# c ValueError тоже не проходили тесты.
-# я поправила тесты практикума и прошло
+# c ValueError тоже не проходят тесты
 def parse_status(homework):
     """Получаем статус домашней работы."""
     homework_name = homework.get('homework_name')
@@ -61,7 +60,7 @@ def parse_status(homework):
     verdict = HOMEWORK_STATUSES.get(homework_status)
     if verdict is None:
         logging.error('Недокументированный статус домашней работы')
-        raise ValueError('Недокументированный статус домашней работы')
+        raise KeyError('Недокументированный статус домашней работы')
     logging.info('Статус домашней работы возвращен корректно')
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
