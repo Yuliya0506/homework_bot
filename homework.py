@@ -8,9 +8,10 @@ import telegram
 from telegram.error import TelegramError
 
 from exceptions import GetApiUnavailable, SendMessageFail
-from config import (PRACTICUM_TOKEN, TELEGRAM_TOKEN,
-                    TELEGRAM_CHAT_ID, RETRY_TIME, ENDPOINT,
-                    HEADERS, HOMEWORK_STATUSES)
+from config import (
+    ENDPOINT, HEADERS, HOMEWORK_STATUSES, PRACTICUM_TOKEN, RETRY_TIME,
+    TELEGRAM_CHAT_ID, TELEGRAM_TOKEN,
+)
 
 
 def send_message(bot, message):
@@ -48,7 +49,8 @@ def check_response(response):
     return homeworks_list
 
 
-# c TypeError не проходят тесты
+# c ValueError тоже не проходили тесты.
+# я поправила тесты практикума и прошло
 def parse_status(homework):
     """Получаем статус домашней работы."""
     homework_name = homework.get('homework_name')
@@ -59,7 +61,7 @@ def parse_status(homework):
     verdict = HOMEWORK_STATUSES.get(homework_status)
     if verdict is None:
         logging.error('Недокументированный статус домашней работы')
-        raise KeyError('Недокументированный статус домашней работы')
+        raise ValueError('Недокументированный статус домашней работы')
     logging.info('Статус домашней работы возвращен корректно')
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
@@ -86,13 +88,10 @@ def main():
             if homeworks:
                 message = parse_status(homeworks[0])
                 send_message(bot, message)
-            current_timestamp = response.get(current_timestamp)
+            current_timestamp = response.get('current_date', current_timestamp)
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             logging.error(error)
-        except KeyboardInterrupt:
-            print('Программа была прервана пользователем')
-            break
         finally:
             time.sleep(RETRY_TIME)
 
@@ -104,4 +103,7 @@ if __name__ == '__main__':
         format='%(asctime)s, %(levelname)s, %(message)s',
         handlers=[logging.StreamHandler(stream=sys.stdout)],
     )
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        logging.info('Программа была прервана пользователем')

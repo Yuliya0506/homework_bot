@@ -458,7 +458,7 @@ class TestHomework:
         try:
             for hw in homeworks:
                 homework.parse_status(hw)
-        except KeyError:
+        except ValueError:
             pass
         else:
             assert False, (
